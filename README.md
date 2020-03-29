@@ -27,9 +27,6 @@ Running from command line allows you to use several additional options:
 
 Notice that you can't ignore name, size and date at the same time.
 
-## Plans
-Usage instructions for PowerShell scripts
-
 ## Contact
 Rafał Gajewski
 rpga@op.pl
