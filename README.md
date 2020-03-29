@@ -23,12 +23,12 @@ Running from command line allows you to use several additional options:
 
 -ignoreDate             - ignore modification dates
 
+-directorymode          - look for directories only, enables ignoreName and ignoreDate, ignores filetype
+
 Notice that you can't ignore name, size and date at the same time.
 
 ## Plans
 Usage instructions for PowerShell scripts
-
-Find duplicated directories
 
 ## Contact
 Rafał Gajewski

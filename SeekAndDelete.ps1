@@ -3,13 +3,21 @@ param (
     [string]$filetype = "", #Empty means all
     [switch]$ignoreName = $false,
     [switch]$ignoreSize = $false,
-    [switch]$ignoreDate = $false
+    [switch]$ignoreDate = $false,
+    [switch]$directorymode = $false
  )
 
 if (($ignoreName -eq $true) -and ($ignoreSize -eq $true) -and($ignoreDate -eq $true))
 {
     echo "Ignoring name, size and date makes no sense - exiting..."
     pause
+}
+
+if ($directorymode -eq $true)
+{
+    echo "Running in directory mode - filetype option is disabled, ignoreName and ignoreDate are set to true"
+    $ignoreName = $true
+    $ignoreDate = $true
 }
 
 $PrintAllFiles = 0
@@ -33,17 +41,28 @@ while ($ToDoDirs.Count -gt 0)
         if ((Get-Item $File) -is [System.IO.DirectoryInfo])
         {
             [void]$ToDoDirs.Add("$pwd\$File")
+            if ($directorymode -eq $true)
+            {
+                $fileObject = New-Object -TypeName PSObject
+                $fileObject | Add-Member -Name 'FullName' Noteproperty -Value $File.FullName
+                $fileObject | Add-Member -Name 'Size' Noteproperty -Value (gci -force -Recurse $File | measure Length -s).sum
+                $fileObject | Add-Member -Name 'Files' Noteproperty -Value (Get-ChildItem $File).Name
+                [void]$AllFiles.Add($fileObject)
+            }
         }
         else
         {
-            if (($filetype -eq "") -or ($filetype -eq [IO.Path]::GetExtension($File)))
+            if ($directorymode -eq $false)
             {
-                $fileObject = New-Object -TypeName PSObject
-                $fileObject | Add-Member -Name 'Name' Noteproperty -Value $File.Name
-                $fileObject | Add-Member -Name 'FullName' Noteproperty -Value $File.FullName
-                $fileObject | Add-Member -Name 'Size' Noteproperty -Value $File.Length
-                $fileObject | Add-Member -Name 'Date' Noteproperty -Value $File.LastWriteTime
-                [void]$AllFiles.Add($fileObject)
+                if (($filetype -eq "") -or ($filetype -eq [IO.Path]::GetExtension($File)))
+                {
+                    $fileObject = New-Object -TypeName PSObject
+                    $fileObject | Add-Member -Name 'Name' Noteproperty -Value $File.Name
+                    $fileObject | Add-Member -Name 'FullName' Noteproperty -Value $File.FullName
+                    $fileObject | Add-Member -Name 'Size' Noteproperty -Value $File.Length
+                    $fileObject | Add-Member -Name 'Date' Noteproperty -Value $File.LastWriteTime
+                    [void]$AllFiles.Add($fileObject)
+                }    
             }
         }
     }
@@ -56,7 +75,14 @@ if ($PrintAllFiles -eq 1)
 {
     for ($i=0; $i -lt $AllFiles.Count; $i++)
     {
-        echo "$($AllFiles[$i].FullName) $($AllFiles[$i].Size) $($AllFiles[$i].Date)"
+        if ($directorymode -eq $false)
+        {
+            echo "$($AllFiles[$i].FullName) $($AllFiles[$i].Size) $($AllFiles[$i].Date)"
+        }
+        else
+        {
+            echo "$($AllFiles[$i].FullName) $($AllFiles[$i].Size) $($AllFiles[$i].Files)"
+        }
     }
 }
 
@@ -91,8 +117,16 @@ for ($i=0; $i -lt $AllFiles.Count; $i++)
                 continue
             }
         }
+        if (($directorymode -eq $true))
+        {
+            if ([string]$AllFiles[$i].Files -ne [string]$AllFiles[$j].Files)
+            {
+                continue
+            }
+        }
         $SameGroup += $AllFiles[$j].FullName
         $AllFiles.RemoveAt($j)
+        $j--
     }
     if ($SameGroup.Count -gt 1)
     {
@@ -111,7 +145,7 @@ for ($i=0; $i -lt $AllFiles.Count; $i++)
 
 if ($AtLeastOneFound -eq 0)
 {
-    echo "Congratulations, you don't have any duplicated files in this directory"
+    echo "Congratulations, you don't have any duplicates in this directory"
 }
 else
 {
